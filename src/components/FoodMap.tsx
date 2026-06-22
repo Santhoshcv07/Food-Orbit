@@ -1,33 +1,71 @@
 // src/components/FoodMap.tsx
 'use client';
 
-import React, { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
+import React, { useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { FoodListing } from '@/lib/types';
-import { Clock, MapPin, Phone, HeartHandshake, Tractor, Recycle } from 'lucide-react';
+import { Clock, MapPin, HeartHandshake, Tractor, Recycle } from 'lucide-react';
 
 // Fix for default custom map markers in Leaflet under Next.js
 const customIcon = (tier: number) => {
   const color = tier === 1 ? '#10b981' : tier === 2 ? '#f59e0b' : '#3b82f6';
+  const glow = tier === 1 ? 'rgba(16,185,129,0.5)' : tier === 2 ? 'rgba(245,158,11,0.5)' : 'rgba(59,130,246,0.5)';
   return L.divIcon({
     className: 'custom-leaflet-marker',
-    html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid #0f172a; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 10px;">${tier}</div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
+    html: `
+      <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+        <div style="position: absolute; inset: 0; background-color: ${glow}; border-radius: 50%; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+        <div style="position: relative; background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid #0f172a; box-shadow: 0 0 15px ${glow}; display: flex; align-items: center; justify-content: center; color: #0f172a; font-weight: 900; font-size: 11px; z-index: 10;">
+          ${tier}
+        </div>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
   });
+};
+
+const CountdownTimer = ({ expiryTime, status }: { expiryTime: string, status: string }) => {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    if (status !== 'available') {
+      setTimeLeft(status === 'claimed' ? 'Claimed' : 'Expired');
+      return;
+    }
+    const update = () => {
+      const diff = new Date(expiryTime).getTime() - Date.now();
+      if (diff <= 0) {
+        setTimeLeft('Escalating...');
+        return;
+      }
+      const h = Math.floor(diff / (1000 * 60 * 60));
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const s = Math.floor((diff % (1000 * 60)) / 1000);
+      setTimeLeft(`${h}h ${m}m ${s}s`);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [expiryTime, status]);
+
+  return <span className="font-mono">{timeLeft}</span>;
 };
 
 interface FoodMapProps {
   listings: FoodListing[];
   onClaim: (id: string, tier: number) => void;
+  userLocation?: { lat: number, lng: number } | null;
 }
 
-export default function FoodMap({ listings, onClaim }: FoodMapProps) {
-  // Center coordinate (Downtown Hub)
-  const centerLat = 12.9716;
-  const centerLng = 77.5946;
+export default function FoodMap({ listings, onClaim, userLocation }: FoodMapProps) {
+  const [selectedListing, setSelectedListing] = React.useState<FoodListing | null>(null);
+
+  // Center coordinate (Dynamic based on user or Downtown Hub fallback)
+  const centerLat = userLocation ? userLocation.lat : 12.9716;
+  const centerLng = userLocation ? userLocation.lng : 77.5946;
 
   // Cleanup Leaflet internal bugs on dismount
   useEffect(() => {
@@ -76,6 +114,9 @@ export default function FoodMap({ listings, onClaim }: FoodMapProps) {
             key={item.id} 
             position={[item.latitude, item.longitude]}
             icon={customIcon(item.tier)}
+            eventHandlers={{
+              click: () => setSelectedListing(item),
+            }}
           >
             <Popup className="custom-popup">
               <div className="p-1 max-w-xs text-slate-900 font-sans">
@@ -95,7 +136,7 @@ export default function FoodMap({ listings, onClaim }: FoodMapProps) {
                 <div className="space-y-0.5 text-[11px] text-slate-500 mb-3 bg-slate-100 p-1.5 rounded">
                   <div className="font-bold text-slate-800">Qty: {item.quantity}</div>
                   <div className="flex items-center gap-1"><MapPin className="h-2.5 w-2.5 text-slate-400"/> {item.address}</div>
-                  <div className="flex items-center gap-1"><Clock className="h-2.5 w-2.5 text-amber-600"/> Exp: {new Date(item.expiryTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                  <div className="flex items-center gap-1"><Clock className="h-2.5 w-2.5 text-amber-600"/> Exp: <CountdownTimer expiryTime={item.expiryTime} status={item.status} /></div>
                 </div>
 
                 <button
@@ -110,6 +151,39 @@ export default function FoodMap({ listings, onClaim }: FoodMapProps) {
             </Popup>
           </Marker>
         ))}
+
+        {/* Dynamic Route Preview */}
+        {userLocation && selectedListing && (
+          <Polyline 
+            positions={[
+              [userLocation.lat, userLocation.lng],
+              [selectedListing.latitude, selectedListing.longitude]
+            ]} 
+            pathOptions={{ color: '#3b82f6', dashArray: '5, 10', weight: 3 }} 
+          />
+        )}
+
+        {/* User GPS Location Marker */}
+        {userLocation && (
+          <Marker 
+            position={[userLocation.lat, userLocation.lng]}
+            icon={L.divIcon({
+              className: 'custom-leaflet-marker',
+              html: `
+                <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                  <div style="position: absolute; inset: -4px; background-color: rgba(59, 130, 246, 0.4); border-radius: 50%; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+                  <div style="position: relative; background-color: #3b82f6; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 15px rgba(59, 130, 246, 0.8); z-index: 10;"></div>
+                </div>
+              `,
+              iconSize: [24, 24],
+              iconAnchor: [12, 12],
+            })}
+          >
+            <Popup className="custom-popup">
+              <div className="p-1 text-slate-900 font-sans text-xs font-bold text-center">Your Live GPS Location</div>
+            </Popup>
+          </Marker>
+        )}
       </MapContainer>
       
       {/* Map Legend */}

@@ -39,6 +39,8 @@ export interface FoodListing {
   claimedAt?: string;
   imageUrl?: string;
   createdAt: string;
+  distKm?: number | null;
+  travelTimeMins?: number | null;
 }
 
 export interface ImpactMetrics {
@@ -46,4 +48,26 @@ export interface ImpactMetrics {
   mealsProvided: number;
   co2SavedKg: number;
   activeListingsCount: number;
+}
+
+export interface EscalationLog {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  previousTier: RescueTier;
+  newTier: RescueTier | 'expired';
+  reason: string;
+  createdAt: string;
+}
+
+export interface AuditLog {
+  id: string;
+  action: 'CREATE' | 'CLAIM' | 'DELETE' | 'ESCALATE';
+  entityType: 'LISTING';
+  entityId: string;
+  entityName: string;
+  actorId: string | 'SYSTEM';
+  actorName: string;
+  details: string;
+  createdAt: string;
 }

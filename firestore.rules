@@ -1,0 +1,98 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ====================================================
+    // 🛡️ INTERNAL SECURITY BOUNCER FUNCTIONS
+    // ====================================================
+
+    // 1. Check if the incoming request has a valid Google Auth token
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 2. Look up the user's official profile document in the 'users' collection
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // 3. Verify if the logged-in user holds a specific stakeholder role
+    function isRole(expectedRole) {
+      return isAuthenticated() && getUserData().role == expectedRole;
+    }
+
+    // ====================================================
+    // COLLECTION 1: USER PROFILES ('users')
+    // ====================================================
+    match /users/{userId} {
+      // Anyone logged into the portal can read profile names (needed for UI rendering)
+      allow read: if isAuthenticated();
+      
+      // Users can only create or edit their own profile document
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Nobody is allowed to delete accounts via the web client
+      allow delete: if false;
+    }
+
+    // ====================================================
+    // COLLECTION 2: SURPLUS FOOD BATCHES ('food_listings')
+    // ====================================================
+    match /food_listings/{listingId} {
+      
+      // READ: Any visitor can view the surplus hub (public dashboard)
+      allow read: if true;
+
+      // CREATE: Only Event Organizers can create a batch, and it MUST carry their UID
+      allow create: if isRole('organizer') 
+                    && request.resource.data.organizerId == request.auth.uid;
+
+      // DELETE: Only the specific Organizer who listed the batch can delete it
+      allow delete: if isRole('organizer') 
+                    && resource.data.organizerId == request.auth.uid;
+
+      // UPDATE: Split into two strictly guarded, mutually exclusive pathways
+      allow update: if (
+        
+        // PATHWAY A: The Organizer modifying their own batch details (cannot claim it!)
+        (
+          isRole('organizer') 
+          && resource.data.organizerId == request.auth.uid
+          && request.resource.data.status == resource.data.status // Prevents organizer claiming
+        )
+        ||
+        // PATHWAY B: A verified Stakeholder claiming food inside their legal Tier
+        (
+          resource.data.status == 'available'
+          && request.resource.data.status == 'claimed'
+          && (
+            (resource.data.tier == 1 && isRole('ngo')) ||
+            (resource.data.tier == 2 && isRole('farmer')) ||
+            (resource.data.tier == 3 && isRole('compost'))
+          )
+        )
+        ||
+        // PATHWAY C: Escalation Simulator (allow tier updates)
+        (
+          resource.data.status == 'available'
+          && request.resource.data.status == resource.data.status
+        )
+      );
+    }
+
+    // ====================================================
+    // COLLECTION 3: AUDIT & ESCALATION LOGS
+    // ====================================================
+    match /audit_logs/{logId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+    }
+
+    match /escalation_logs/{logId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+    }
+
+  }
+}

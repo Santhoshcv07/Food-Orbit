@@ -1,6 +1,6 @@
 // src/components/Footer.tsx
 import Link from 'next/link';
-import { Heart, ShieldCheck, RefreshCw, Leaf } from 'lucide-react';
+import { ShieldCheck, RefreshCw, Leaf } from 'lucide-react';
 
 export function Footer() {
   return (

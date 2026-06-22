@@ -11,8 +11,8 @@ export async function POST(request: Request) {
     const summary = await getFoodRescueSummary(Number(activeCount || 0), Number(totalKg || 0));
 
     return NextResponse.json({ summary: summary });
-  } catch (error: any) {
-    console.error("AI API Route Error:", error);
+  } catch (error: unknown) {
+    if (error instanceof Error) console.error("AI API Route Error:", error.message);
     return NextResponse.json(
       { summary: "AI Impact analysis service is temporarily unreachable." },
       { status: 500 }
