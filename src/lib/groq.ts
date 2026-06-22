@@ -1,18 +1,20 @@
 // src/lib/groq.ts
 import Groq from 'groq-sdk';
 
-const apiKey = process.env.GROQ_API_KEY || 'placeholder-groq-key';
+// 1. Initialize Groq purely for Node.js Server execution
+// Notice 'dangerouslyAllowBrowser' has been deleted forever.
+const apiKey = process.env.GROQ_API_KEY;
 
-// Initialize the Groq client
-export const groq = new Groq({
-  apiKey: apiKey,
-  dangerouslyAllowBrowser: true, // Allows us to fetch fast AI insights directly in client components
+const groq = new Groq({
+  apiKey: apiKey || 'fallback-key',
 });
 
-/**
- * AI Helper function to generate instant sustainability summaries for FoodOrbit
- */
 export async function getFoodRescueSummary(listingsCount: number, totalKg: number): Promise<string> {
+  if (!apiKey || apiKey === 'fallback-key') {
+    console.warn("Backend Warning: GROQ_API_KEY is missing from the server environment.");
+    return "Impact summary running in offline mode. Your automated food rescue efforts are actively diverting organic surplus from municipal landfills.";
+  }
+
   try {
     const prompt = `Act as an expert sustainability analyst for FoodOrbit, a three-tier food rescue network (Tier 1: Human Consumption, Tier 2: Animal Feed, Tier 3: Composting). 
     We currently have ${listingsCount} active surplus food listings and have successfully rescued ${totalKg} kg of food.
@@ -20,13 +22,13 @@ export async function getFoodRescueSummary(listingsCount: number, totalKg: numbe
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: 'llama3-8b-8192',
+      model: 'llama-3.3-70b-versatile', // Locked to your tested, working Versatile model
     });
 
     return chatCompletion.choices[0]?.message?.content || 
       "Incredible progress! Your food redistribution efforts are actively curbing landfill methane emissions and bridging the gap between abundance and need.";
   } catch (error) {
-    console.error("Groq AI API Error:", error);
+    console.error("Groq Server-Side API API Error:", error);
     return "AI Impact summary is temporarily running in offline mode. Every kilogram rescued brings us closer to a circular food economy!";
   }
 }
