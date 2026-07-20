@@ -25,7 +25,7 @@
 
 ## 🎯 What it does
 
-**FoodOrbit** is an intelligent, cloud-based ecosystem designed to tackle the global problem of food waste. By acting as a real-time bridge, it ensures surplus food from events or large gatherings is dynamically routed to the most appropriate destination before it expires.
+
 
 Our goal is to **maximize food recovery and prevent landfill waste** using a structured three-tier system.
 
