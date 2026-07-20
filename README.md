@@ -157,7 +157,11 @@ The easiest way to deploy this Next.js application is through [Vercel](https://v
 
 ## 🚀 Future Scope
 
-
+The mission to eliminate food waste doesn't stop here. Planned future enhancements include:
+* **Geospatial Tracking:** Real-time map integration showing active food listings and routing for claimers.
+* **Audit Logging & Activity Tracking:** Enhanced security compliance by logging all user interactions.
+* **Logistics Integration:** Partnering with local delivery APIs to automate transport from organizer to claimer.
+* **Advanced AI Analytics:** Predictive AI to help event organizers accurately estimate food requirements to prevent surplus entirely.
 
 ---
 
