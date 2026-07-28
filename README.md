@@ -5,7 +5,11 @@
   <p>Connecting Event Organizers, NGOs, Farmers, and Compost Agencies to eliminate food waste through an automated, intelligent redistribution network.</p>
 
   <p>
- 
+    <a href="https://food-orbit.vercel.app"><b>Live Demo</b></a> •
+    <a href="#-what-it-does"><b>What it does</b></a> •
+    <a href="#-architecture--workflow"><b>Architecture</b></a> •
+    <a href="#%EF%B8%8F-setup--deployment"><b>Setup</b></a> •
+    <a href="#-future-scope"><b>Future Scope</b></a>
   </p>
 
   <div>
