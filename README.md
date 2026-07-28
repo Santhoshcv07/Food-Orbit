@@ -32,6 +32,7 @@ Our goal is to **maximize food recovery and prevent landfill waste** using a str
 ---
 
 ## ✨ Features & User Roles
+FoodOrbit operates through role-based access, ensuring a smooth and targeted experience for every participant in the ecosystem.
 
 
 | Role | Capabilities & Workflow |
